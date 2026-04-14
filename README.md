@@ -1,59 +1,72 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ✈️ Hệ Thống Quản Lý Và Đặt Vé Máy Bay Trực Tuyến (Flight Booking System)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **Mô hình kiến trúc:** Web API (Decoupled Architecture) 
+> **Công nghệ lõi:** Laravel 11 (Backend) + ReactJS Vite (Frontend) + MySQL
+> **Design Pattern:** Service - Repository Pattern
 
-## About Laravel
+## 📖 1. Giới Thiệu Dự Án
+Dự án được xây dựng nhằm tối ưu hóa quy trình đặt chỗ, quản lý chuyến bay và các dịch vụ hàng không đi kèm. Hệ thống tách biệt hoàn toàn Frontend và Backend để đảm bảo tính mở rộng, hiệu suất cao và chuẩn hóa quy trình làm việc nhóm theo mô hình doanh nghiệp.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 🌟 Tính năng cốt lõi:
+- **Người dùng:** Tìm kiếm chuyến bay thời gian thực, chọn chỗ ngồi trực quan (Seat Map), mua dịch vụ bổ trợ, thanh toán và làm thủ tục trực tuyến (Check-in).
+- **Quản trị viên:** Quản lý đội bay, lên lịch trình chuyến bay, thiết lập sơ đồ ghế ngồi và thống kê doanh thu.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🛠️ 2. Quy Trình Cài Đặt Môi Trường (Local Setup)
 
-## Learning Laravel
+**Yêu cầu hệ thống:** PHP >= 8.2, Composer, Node.js (v18+), MySQL (v8.0+).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 2.1. Cài đặt Backend (Laravel)
+```bash
+# 1. Di chuyển vào thư mục backend
+cd backend
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# 2. Cài đặt các gói thư viện PHP
+composer install
 
-## Laravel Sponsors
+# 3. Khởi tạo file cấu hình môi trường
+cp .env.example .env
+php artisan key:generate
+///////////////////////////////////////////////////////////////////////////////////
+Cấu hình Database (Mở file .env và sửa các dòng sau):
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=airline_db  # Tạo database này trong MySQL trước
+DB_USERNAME=root
+DB_PASSWORD=
+/////////////////////////////////////////////////////////////////////////////
+Khởi tạo Bảng và Dữ liệu mẫu:
+php artisan migrate --seed
+/////////////////////////////////////////////////////////////////////////////
+Chạy Server Backend:
+php artisan serve
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
 
-### Premium Partners
+Cài đặt Frontend (ReactJS)
+# 1. Mở một Terminal mới, di chuyển vào thư mục frontend
+cd frontend
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 2. Cài đặt các gói thư viện Node
+npm install
 
-## Contributing
+# 3. Chạy Server Frontend
+npm run dev
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-## Code of Conduct
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Bước 1: Lấy code mới nhất về máy
+git checkout main
+git pull origin main
+Bước 2: Tạo nhánh riêng để làm việc
+# Cú pháp: feature/[tên-viết-thường-không-dấu]
+# Ví dụ: feature/api-login, feature/crud-flight
+git checkout -b feature/ten-chuc-nang-cua-ban
+Bước 3: Code, Lưu và Commit trên nhánh cá nhân
+git add .
+git commit -m "Hoàn thành API [Tên chức năng], đã test qua Postman"
+Bước 4: Đẩy code lên GitHub
+git push origin feature/ten-chuc-nang-cua-ban
+Bước 5: Tạo Pull Request (PR) & Review
