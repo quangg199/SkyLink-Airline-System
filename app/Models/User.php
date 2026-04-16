@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',             // Thêm cột phân quyền (admin, member)
+        'membership_tier',  // Thêm cột hạng thành viên (standard, gold...)
     ];
 
     /**
@@ -45,5 +47,15 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * QUAN HỆ CƠ SỞ DỮ LIỆU
+     */
+     
+    // 1 User có nhiều Booking (Quan hệ 1-n)
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 }
