@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role')->default('member'); // Cột phân quyền
+            // Cột phân quyền
             $table->string('membership_tier')->default('standard'); // Cột hạng thành viên
             $table->rememberToken();
             $table->timestamps();

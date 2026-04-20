@@ -17,7 +17,8 @@ return new class extends Migration
         $table->foreignId('flight_id')->constrained()->onDelete('cascade');
         $table->string('passenger_name');
         $table->string('identity_number'); // CCCD
-        $table->string('seat_number');
+        
+        $table->foreignId('seat_id')->nullable()->constrained('seats');
         $table->integer('ticket_price');
         $table->timestamps();
     });

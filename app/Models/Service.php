@@ -9,7 +9,7 @@ class Service extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'price'];
+    protected $fillable = ['name', 'price', 'type'];
 
     // 1 Dịch vụ nằm trong nhiều Đơn hàng (n-n)
     public function bookings() 

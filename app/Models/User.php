@@ -58,4 +58,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Booking::class);
     }
+    public function roles()
+{
+    // Một User có nhiều Role thông qua bảng trung gian role_user
+    return $this->belongsToMany(Role::class);
+}
 }

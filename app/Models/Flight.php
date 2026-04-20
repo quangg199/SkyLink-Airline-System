@@ -17,7 +17,8 @@ class Flight extends Model
         'arrival_time', 
         'base_price', 
         'available_seats', 
-        'status'
+        'status',
+        'available_seats'
     ];
 
     // Trỏ về bảng Airport để lấy thông tin Sân bay đi

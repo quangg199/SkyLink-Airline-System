@@ -31,8 +31,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             
-            // BỔ SUNG 2 TRƯỜNG DỮ LIỆU MỚI:
-            'role' => 'member', // Mặc định mọi tài khoản ảo đều là khách hàng
+            
             
             // Random hạng thành viên (Tỉ lệ standard nhiều hơn để giống thực tế)
             'membership_tier' => fake()->randomElement(['standard', 'standard', 'silver', 'gold']), 

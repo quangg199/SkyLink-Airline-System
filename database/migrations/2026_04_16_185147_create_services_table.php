@@ -13,8 +13,12 @@ return new class extends Migration
 {
     Schema::create('services', function (Blueprint $table) {
         $table->id();
-        $table->string('name'); // Hành lý 20kg, Suất ăn chay...
-        $table->integer('price');
+        $table->string('name');
+        $table->decimal('price', 15, 2); // Giá dịch vụ
+        
+        // THÊM DÒNG NÀY: 1: Hành lý, 2: Suất ăn, 3: Dịch vụ khác
+        $table->tinyInteger('type')->default(1); 
+        
         $table->timestamps();
     });
 }
