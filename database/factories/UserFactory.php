@@ -30,6 +30,11 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            
+            
+            
+            // Random hạng thành viên (Tỉ lệ standard nhiều hơn để giống thực tế)
+            'membership_tier' => fake()->randomElement(['standard', 'standard', 'silver', 'gold']), 
         ];
     }
 
