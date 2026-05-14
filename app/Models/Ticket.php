@@ -5,39 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Ticket extends Model
-{
-    use HasFactory;
-
-    // Các trường được phép lưu dữ liệu
-    protected $fillable = [
-        'booking_id', 
-        'flight_id', 
-        'passenger_name', 
-        'identity_number', 
-        'seat_number', 
-        'ticket_price'
-    ];
-
-    /**
-     * QUAN HỆ CƠ SỞ DỮ LIỆU
-     */
-
-    // 1 Vé thuộc về 1 Đơn đặt chỗ
-    public function booking()
+    class Ticket extends Model
     {
-        return $this->belongsTo(Booking::class);
-    }
+        use HasFactory;
 
-    // 1 Vé thuộc về 1 Chuyến bay
-    public function flight()
-    {
-        return $this->belongsTo(Flight::class);
-    }
+        protected $fillable = [
+            'booking_id',
+            'flight_id',
+            'ticket_code',
+            'passenger_name',
+            'identity_number',
+            'seat_id',
+            'ticket_price'
+        ];
 
-    // 1 Vé chỉ xuất được đúng 1 Thẻ lên máy bay (QUAN HỆ 1-1)
-    public function boardingPass()
-    {
-        return $this->hasOne(BoardingPass::class);
+        public function booking()
+        {
+            return $this->belongsTo(Booking::class);
+        }
+
+        public function flight()
+        {
+            return $this->belongsTo(Flight::class);
+        }
+
+        public function boardingPass()
+        {
+            return $this->hasOne(BoardingPass::class);
+        }
+
+        // 🔥 FIX QUAN TRỌNG
+        public function seat()
+        {
+            return $this->belongsTo(Seat::class);
+        }
     }
-}

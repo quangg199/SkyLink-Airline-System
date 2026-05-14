@@ -20,15 +20,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // 2. Tạo bảng con sau (SEATS)
-        Schema::create('seats', function (Blueprint $table) {
-            $table->id();
-            // CHÚ Ý: Bắt buộc phải truyền tên bảng 'aircrafts' vào đây
-            $table->foreignId('aircraft_id')->constrained('aircrafts')->cascadeOnDelete();
-            $table->string('seat_number');
-            $table->tinyInteger('seat_class')->default(1);
-            $table->timestamps();
-        });
+        
     }
 
     /**
@@ -36,7 +28,7 @@ return new class extends Migration
      */
     public function down(): void
 {
-    Schema::dropIfExists('seats'); // Xóa con trước
+    
     Schema::dropIfExists('aircrafts'); // Xóa cha sau
 }
 };
