@@ -1,0 +1,6 @@
+[submodule "airline-backend"]
+	path = airline-backend
+	url = https://github.com/quangg199/airline-backend.git
+[submodule "airline-frontend"]
+	path = airline-frontend
+	url = https://github.com/quangg199/airline-frontend.git
