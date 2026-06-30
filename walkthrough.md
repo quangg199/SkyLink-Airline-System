@@ -1,79 +1,117 @@
-# Báo cáo Chuyên sâu Kiến trúc Backend & Phân tích Design Patterns: SkyLink Airline System
-  ---
-
-## 1. Tìm kiếm và Trả về kết quả chuyến bay (Flight Search Engine)
-* **Chức năng Backend đã làm:** API `/api/flights` tìm kiếm và tự động sinh dữ liệu chuyến bay nếu trong DB bị trống, đảm bảo tính nhất quán (Deterministic) khi sinh dữ liệu.
-* **Design Pattern áp dụng:** `Proxy Pattern` (qua `FlightSearchProxy`) và `Factory / Generator` (qua `FlightGeneratorService`).
-* **Luồng chạy của Code (Code Flow):**
-  1. **Frontend:** Người dùng bấm tìm kiếm trên file `HomePage.jsx` -> Chuyển sang trang `FlightResults.jsx` -> Gửi API `GET /api/flights`.
-  2. **Controller:** API gọi vào `FlightController@index` (`app/Http/Controllers/Api/FlightController.php`).
-  3. **Proxy:** Thay vì chọc thẳng vào Database, Controller gọi qua `FlightSearchProxy` (`app/Services/FlightSearchProxy.php`).
-  4. **Factory:** Proxy kiểm tra DB nếu chưa có chuyến bay nào trong ngày đó, nó sẽ gọi `FlightGeneratorService` (Factory) để tự động sinh ra dữ liệu mẫu.
-  5. **Trả kết quả:** Proxy ném dữ liệu về lại Controller -> Trả về JSON cho Frontend.
-* **Giải quyết bài toán (Problem-First):** Controller không được phép phình to để chứa các logic kiểm tra Database và tự động tạo chuyến bay giả lập.
-* **Ưu điểm:**
-  - Tách bạch hoàn toàn trách nhiệm (SRP). Controller trở nên rất mỏng (skinny).
-  - Proxy đứng ra làm "Bảo vệ", dễ dàng gắn thêm Redis Cache vào sau này mà không đập đi viết lại code tìm kiếm.
-* **Nhược điểm:**
-  - Số lượng file và class tăng lên (phải có thêm Interface và class Proxy). Các lập trình viên mới vào dự án có thể gặp khó khăn khi dò tìm luồng dữ liệu thực sự được xử lý ở đâu (vì Controller chỉ trỏ tới Proxy).
-
-## 2. Tính toán Giá vé Động (Dynamic Pricing Engine)
-* **Chức năng Backend đã làm:** Hệ thống tính toán giá vé thay đổi linh hoạt theo loại hình vé (Một chiều / Khứ hồi) và áp dụng giảm giá tự động nếu khách là VIP.
-* **Design Pattern áp dụng:** `Strategy Pattern`, `Factory Method`, và `Decorator Pattern`.
-* **Luồng chạy của Code (Code Flow):**
-  1. **Tạo vé:** Quá trình tính giá bắt đầu khi hệ thống cần chốt tổng tiền.
-  2. **Factory:** Gọi `PricingStrategyFactory::resolve($loai_ve)` (`app/Services/Pricing/PricingStrategyFactory.php`) để lấy công thức tính giá. Factory tự động chọn `OneWayPricingStrategy.php` hoặc `RoundTripPricingStrategy.php`.
-  3. **Strategy:** Strategy bắt đầu tính toán giá gốc nhân với hệ số.
-  4. **Decorator:** Nếu người dùng đang đăng nhập là hạng VIP, Strategy gốc sẽ được "bọc" (Wrap) vào trong `VipPricingDecorator.php` để giảm thêm 10% tổng tiền mà không cần sửa code cũ.
-* **Giải quyết bài toán (Problem-First):** Tránh viết các câu lệnh `if...else if...else` khổng lồ trong hàm tính tiền khi logic giá ngày càng phức tạp (khuyến mãi, lễ tết, VIP).
-* **Ưu điểm:**
-  - Tuân thủ Tuyệt đối **OCP (Open/Closed Principle)**. Thêm chiến lược giá mới chỉ cần tạo file mới.
-  - `Decorator Pattern` cho phép "bọc" các lớp giảm giá chồng lên nhau một cách linh hoạt (VD: Giá Khứ hồi + Giảm VIP + Giảm Sinh nhật) rất dễ dàng.
-* **Nhược điểm:**
-  - `Decorator Pattern` tạo ra một chuỗi các object bọc lấy nhau. Khi debug xem giá cuối cùng được tính ra sao, dev phải step-into (F11) qua rất nhiều tầng class nhỏ lẻ.
-
-## 3. Tích hợp Thanh toán (Payment Gateway Integration)
-* **Chức năng Backend đã làm:** Xử lý luồng thanh toán Momo và VNPay, bảo vệ Database bằng Transaction, tích hợp logic khóa chống thanh toán trùng lặp. Đã hoàn thiện 100%.
-* **Design Pattern áp dụng:** `Adapter Pattern` kết hợp `Simple Factory`.
-* **Luồng chạy của Code (Code Flow):**
-  1. **Frontend:** Người dùng bấm "Thanh toán ngay" ở trang `Checkout.jsx` -> Gửi API `POST /api/payments`.
-  2. **Controller:** Route điều hướng vào `PaymentController@store` (`app/Http/Controllers/Api/PaymentController.php`).
-  3. **Factory:** Controller gọi `PaymentFactory::create($gateway)` (`app/Services/Payment/PaymentFactory.php`).
-  4. **Adapter:** Factory trả về một Adapter tương ứng (ví dụ: `MockMomoAdapter.php` hoặc `MockVnPayAdapter.php`). Tất cả các Adapter này đều dùng chung Interface `PaymentGatewayInterface.php`.
-  5. **Xử lý:** Adapter dịch các thông số nội bộ thành chuỗi JSON chuẩn của từng ngân hàng và trả về link thanh toán.
-* **Giải quyết bài toán (Problem-First):** Hệ thống cần giao tiếp với bên thứ ba (Momo, VNPay) có cấu trúc Data JSON và chuẩn mã hóa khác nhau, nhưng không được dính chặt (tight-coupling) logic này vào Controller.
-* **Ưu điểm:**
-  - API gọi thanh toán hoàn toàn độc lập. Controller không hề biết nó đang gọi Momo hay VNPay, nó chỉ biết đang gọi chung một `PaymentGatewayInterface`.
-  - Có thể dễ dàng gắn thêm cổng Stripe hay ZaloPay trong tương lai chỉ bằng cách tạo 1 class Adapter mới.
-* **Nhược điểm:**
-  - Đôi khi cấu trúc chung của Interface không thể bao quát hết các tham số đặc thù của một cổng thanh toán kỳ lạ nào đó, buộc phải nhét thêm các mảng tùy chọn (`options array`), làm giảm đi tính định kiểu chặt chẽ (type-safety) của PHP.
-
-## 4. Quản lý Đặt chỗ & Hủy ghế tự động (Booking Orchestration)
-* **Chức năng Backend đã làm:** Khóa ghế 15 phút an toàn (dùng Cache), tự động dọn dẹp (Passive Cleanup) các vé quá hạn 15 phút mà không cần cài đặt Background Worker (Cronjob).
-* **Kiến trúc áp dụng:** Giải pháp **Passive Cleanup** & **Optimistic Locking**.
-* **Luồng chạy của Code (Code Flow):**
-  1. **Dọn rác thụ động (Passive Cleanup):** Khi có khách hàng vào đặt vé gọi API lấy ghế trống (`FlightController.php`), hệ thống chèn một câu truy vấn ngầm để hủy (`status = cancelled`) toàn bộ các vé `pending` mà `expires_at` đã trễ quá 15 phút. Ghế lập tức được nhả ra.
-  2. **Khóa chống trùng (Locking):** Khi khách bấm thanh toán (`PaymentController.php`), hệ thống bật Transaction `DB::beginTransaction()` và gọi `lockForUpdate()`. Dòng dữ liệu chiếc ghế đó sẽ bị khóa cứng ở cấp độ Database, ngăn chặn tuyệt đối tình trạng 2 người cùng mua 1 ghế trong cùng một phần nghìn giây.
-* **Giải quyết bài toán (Problem-First):** Xóa bỏ các vé rác giữ chỗ quá hạn mà không làm nặng hệ thống bởi các hàng đợi (Queues) và Job lặp lại phức tạp.
-* **Ưu điểm:**
-  - Cực kỳ nhẹ máy, hệ thống tự làm sạch dữ liệu cũ mỗi khi có ai đó truy vấn danh sách vé trống (Lazy Evaluation). 
-  - Giải quyết triệt để lỗi đua lệnh (Race Condition) bằng `lockForUpdate()` của Database.
-* **Nhược điểm:**
-  - Vì là dọn dẹp "Thụ động", dữ liệu rác vẫn nằm yên trong Database cho đến khi có request gọi tới nó. Không phù hợp với các hệ thống vé máy bay siêu lớn cần Real-time xả ghế chính xác tự động tới từng mili-giây.
-
-## 5. Quản lý Vòng đời Chuyến bay (Flight Lifecycle)
-* **Chức năng Backend đã làm:** Ngăn chặn việc nhảy bước trạng thái chuyến bay (VD: ép cất cánh khi chưa mở quầy check-in). Đã hoàn thiện 100%.
-* **Design Pattern áp dụng:** `State Pattern`.
-* **Luồng chạy của Code (Code Flow):**
-  1. **Model:** Mỗi khi thay đổi trạng thái máy bay, gọi hàm `$flight->transitionTo(new CheckInState())` trên `Flight.php` Model.
-  2. **State Object:** Laravel tự khởi tạo class `CheckInState.php` (`app/States/Flight/CheckInState.php`). 
-  3. **Validate:** Tại đây, class State tự động kiểm tra xem máy bay ĐANG ở trạng thái `Scheduled` thì mới cho phép lên `CheckIn`. Nếu máy bay đang ở `Boarding` mà bắt lùi về `CheckIn`, nó sẽ ném lỗi (Exception) ngay lập tức để bảo vệ luồng bay.
-* **Giải quyết bài toán (Problem-First):** Thay thế vô số câu lệnh `if ($status == 'Scheduled')` rải rác khắp nơi bằng các quy tắc chuyển đổi khép kín, ngăn chặn bug nghiêm trọng về quy trình bay.
-* **Ưu điểm:**
-  - Ràng buộc cực kỳ chặt chẽ luật kinh doanh. Lỗi nhảy cóc trạng thái là bất khả thi ở tầng mã nguồn.
-  - Cột `status` trong DB vẫn giữ nguyên cấu trúc cũ, đảm bảo Backward Compatibility (tương thích ngược) không làm hỏng dữ liệu.
-* **Nhược điểm:**
-  - Việc phải tạo ra tới 7 Class độc lập (mỗi trạng thái 1 class) cho một thuộc tính duy nhất làm hệ thống bị dư thừa file (Verbose). Đối với các dự án siêu nhỏ thì đây được coi là Over-engineering (Làm quá mức cần thiết).
+# BÁO CÁO CHUYÊN SÂU KIẾN TRÚC BACKEND & PHÂN TÍCH DESIGN PATTERNS
+**Dự án:** SkyLink Airline System
+**Thực hiện:** Phần lõi (Core Engine) xử lý đặt vé, tính giá và luồng bay.
 
 ---
 
+## 1. TÌM KIẾM CHUYẾN BAY (Proxy & Factory Pattern)
+
+### 1.1. Khái niệm
+**Proxy Pattern** là một mẫu thiết kế cấu trúc (Structural Pattern) cung cấp một đối tượng trung gian (Proxy) để kiểm soát việc truy cập vào đối tượng thực. Trong dự án, `FlightSearchProxy` đóng vai trò đứng trước logic truy vấn Database thông thường. Nếu truy vấn không có kết quả, Proxy sẽ kích hoạt **Factory Pattern** (`FlightGeneratorService`) để tự động sinh ra chuyến bay mẫu, đảm bảo trải nghiệm người dùng không bao giờ bị gián đoạn vì "không tìm thấy dữ liệu".
+
+### 1.2. Ưu điểm cốt lõi
+| Ưu điểm | Giải thích chi tiết |
+|---------|--------------------|
+| **Single Responsibility (SRP)** | Controller chỉ làm nhiệm vụ tiếp nhận Request và trả về JSON, không ôm đồm logic kiểm tra Database hay sinh dữ liệu giả lập. |
+| **Loose Coupling** | Controller không giao tiếp trực tiếp với DB hay Generator, mà chỉ giao tiếp với Proxy. Dễ dàng gắn thêm Redis Cache vào Proxy sau này. |
+| **Deterministic Data** | Dữ liệu chuyến bay luôn được đảm bảo tồn tại, tạo ra luồng test (kiểm thử) mượt mà không bị tắc nghẽn ở bước tìm chuyến. |
+
+### 1.3. Bảng so sánh trực quan (Trước và Sau Refactoring)
+| Tiêu chí | Trước khi có Pattern (if/else trong Controller) | Sau khi dùng Proxy + Factory Pattern |
+|----------|-------------------------------------------------|--------------------------------------|
+| **Vị trí logic** | Dồn cục bộ trong hàm `index()` của `FlightController` | Tách bạch: `FlightSearchProxy` (Chắn cửa) và `FlightGeneratorService` (Sinh dữ liệu) |
+| **Xử lý khi DB rỗng**| Phải viết `if ($flights->isEmpty()) { ... }` rất dài trong Controller | Proxy tự ngầm gọi Factory, Controller không cần biết. |
+| **Bảo trì / Mở rộng** | Khó, dễ gây bug vỡ màn hình do Controller quá dài (Fat Controller) | Dễ, Controller siêu mỏng (Skinny Controller). |
+
+### 1.4. Class Diagram
+![Sơ đồ Class Diagram - Proxy & Factory Pattern](./diagrams_output/1_flight_search_proxy.png)
+
+---
+
+## 2. TÍNH TOÁN GIÁ VÉ ĐỘNG (Strategy & Decorator Pattern)
+
+### 2.1. Khái niệm
+- **Strategy Pattern** (Hành vi): Tách các công thức tính giá gốc (Một chiều, Khứ hồi) thành các class độc lập (`OneWayPricingStrategy`, `RoundTripPricingStrategy`).
+- **Decorator Pattern** (Cấu trúc): Cho phép "bọc" (wrap) thêm các tính năng giảm giá (Ví dụ: Giảm giá VIP) lên trên Strategy gốc một cách linh hoạt trong thời gian chạy (runtime) mà không làm thay đổi code gốc.
+
+### 2.2. Ưu điểm cốt lõi
+| Ưu điểm | Giải thích chi tiết |
+|---------|--------------------|
+| **Open/Closed Principle (OCP)** | Muốn thêm loại giảm giá mới (Ví dụ: Giảm lễ Tết), chỉ cần tạo `HolidayPricingDecorator` mà không cần đụng vào code tính giá gốc. |
+| **Tính kết hợp linh hoạt (Composable)** | Có thể lồng ghép nhiều lớp: Giá gốc -> Bọc bởi giảm VIP -> Bọc bởi mã Coupon. Không cần dùng lệnh `if...else` lồng nhau. |
+
+### 2.3. Bảng so sánh trực quan
+| Tiêu chí | Trước khi có Pattern | Sau khi dùng Strategy + Decorator |
+|----------|----------------------|-----------------------------------|
+| **Cấu trúc tính giá** | `if ($type == 'round_trip') {...} if ($is_vip) {...}` | Factory gọi Strategy, bọc thêm Decorator. |
+| **Tuân thủ SOLID** | Vi phạm OCP. Sửa một lỗi có thể làm gãy các luật giảm giá khác. | Tuân thủ tuyệt đối OCP và SRP. |
+| **Trùng lặp code** | Cao (phải lặp lại logic tính toán ở checkout và admin) | Không có (tất cả tập trung tại Pricing Service) |
+
+### 2.4. Class Diagram
+![Sơ đồ Class Diagram - Strategy & Decorator Pattern](./diagrams_output/2_pricing_strategy_decorator.png)
+
+---
+
+## 3. TÍCH HỢP THANH TOÁN (Adapter Pattern)
+
+### 3.1. Khái niệm
+**Adapter Pattern** là mẫu thiết kế cấu trúc giúp các interface không tương thích có thể làm việc cùng nhau. Momo và VNPay yêu cầu định dạng JSON đầu vào hoàn toàn khác biệt. Cấu trúc hệ thống sử dụng một `PaymentGatewayInterface` chuẩn hóa, và các `MockMomoAdapter` hoặc `MockVnPayAdapter` đóng vai trò "người phiên dịch", chuyển đổi dữ liệu chuẩn của hệ thống thành định dạng đặc thù của từng ví điện tử.
+
+### 3.2. Ưu điểm cốt lõi
+| Ưu điểm | Giải thích chi tiết |
+|---------|--------------------|
+| **Dependency Inversion** | Controller không bị ràng buộc (tight-coupling) với API của Momo. Controller chỉ giao tiếp với Interface. |
+| **Bảo vệ Hệ thống** | Nếu tài liệu API của Momo bị thay đổi, ta chỉ cần sửa duy nhất file `MockMomoAdapter`, toàn bộ hệ thống đặt vé không bị ảnh hưởng. |
+
+### 3.3. Bảng so sánh trực quan
+| Tiêu chí | Khởi tạo API trực tiếp (Không Pattern) | Sử dụng Adapter Pattern |
+|----------|-----------------------------------------|--------------------------|
+| **Gọi API thanh toán** | Switch-case trực tiếp trong Controller, cURL thẳng tới Momo/VNPay. | Gọi `PaymentFactory::create()->processPayment()` |
+| **Bảo trì / Thay đổi** | Phải dò tìm và sửa lại Controller thanh toán. Nguy cơ lỗi cao. | Cập nhật độc lập bên trong class Adapter. |
+
+### 3.4. Class Diagram
+![Sơ đồ Class Diagram - Adapter Pattern](./diagrams_output/3_payment_adapter.png)
+
+---
+
+## 4. VÒNG ĐỜI CHUYẾN BAY (State Pattern)
+
+### 4.1. Khái niệm
+**State Pattern** là mẫu thiết kế hành vi cho phép một đối tượng thay đổi hành vi của nó khi trạng thái nội bộ thay đổi. Máy bay có vòng đời cực kỳ nghiêm ngặt: `Scheduled` -> `Check-In` -> `Boarding` -> `Departed`. Hệ thống thay vì kiểm tra chuỗi `status`, đã chuyển hóa chúng thành các Object State riêng biệt (`CheckInState.php`, `ScheduledState.php`). 
+
+### 4.2. Ưu điểm cốt lõi
+| Ưu điểm | Giải thích chi tiết |
+|---------|--------------------|
+| **An toàn tuyệt đối** | Loại bỏ rủi ro do thao tác tay (ví dụ: máy bay đang cất cánh nhưng nhân viên ấn nhầm về Check-in). State class sẽ tự động chặn các bước nhảy cóc phi lý. |
+| **Đóng gói Logic (Encapsulation)** | Mỗi class trạng thái tự chứa logic kiểm tra của riêng nó (ví dụ: giờ Check-in chỉ mở từ 24h-2h trước bay), không để lộn xộn trong Flight Model. |
+
+### 4.3. Bảng so sánh trực quan
+| Tiêu chí | Quản lý bằng biến String/Int | Quản lý bằng State Pattern |
+|----------|------------------------------|----------------------------|
+| **Kiểm tra trạng thái**| `if ($flight->status == 'scheduled' && $now > ...) `| `$flight->state()->validateCheckIn();` |
+| **Chuyển đổi trạng thái**| Cập nhật thẳng thuộc tính `$flight->status = 'departed'` | Gọi qua hàm `$flight->state()->transitionTo('departed')` |
+
+### 4.4. Class Diagram
+![Sơ đồ Class Diagram - State Pattern](./diagrams_output/4_flight_state.png)
+
+---
+
+## 5. QUẢN LÝ KHÓA GHẾ VÀ DỌN RÁC (Optimistic Locking & Passive Cleanup)
+
+*(Lưu ý: Đây là Architectural & Database Pattern, không thuộc GoF Design Patterns truyền thống nhưng là phần đặc biệt quan trọng)*
+
+### 5.1. Khái niệm
+- **Optimistic Locking:** Sử dụng Transaction `DB::beginTransaction()` kết hợp `lockForUpdate()` khi hành khách bấm thanh toán. Row của chiếc ghế trong CSDL sẽ bị khóa chặn lại.
+- **Passive Cleanup:** Thay vì cấu hình Job / Cronjob chạy ngầm liên tục gây hao tổn CPU server, hệ thống sẽ tự động dọn rác (xóa các ghế hết hạn giữ chỗ 15 phút) ngay tại khoảnh khắc có một hành khách mới thực hiện hành động tìm kiếm ghế.
+
+### 5.2. Ưu điểm cốt lõi
+| Ưu điểm | Giải thích chi tiết |
+|---------|--------------------|
+| **Loại trừ Race Condition** | Khắc phục 100% tình trạng hai khách hàng cùng bấm thanh toán 1 ghế tại cùng 1 giây (Double-booking). |
+| **Tiết kiệm tài nguyên** | Cách tiếp cận Lazy Evaluation (Passive Cleanup) giúp máy chủ cực kỳ nhẹ, không cần worker chạy ngầm tốn chi phí. |
+
+### 5.3. Sequence Diagram (Sơ đồ tuần tự)
+![Sơ đồ Sequence Diagram - Locking & Cleanup](./diagrams_output/5_locking_cleanup.png)
+
+---
+**TỔNG KẾT:** Các kiến trúc và Pattern trên không chỉ giải quyết triệt để các bài toán hóc búa của nghiệp vụ Hàng Không (Tính đúng giá, chống trùng ghế, vòng đời nghiêm ngặt) mà còn tạo ra một bộ khung Code (Codebase) vững chắc, tuân thủ SOLID, sẵn sàng để nâng cấp mở rộng trong tương lai.

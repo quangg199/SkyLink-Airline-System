@@ -1,0 +1,121 @@
+=== 1. TÌM KIẾM CHUYẾN BAY (Proxy & Factory Pattern) ===
+@startuml
+class FlightController {
+  +index(Request)
+}
+
+class FlightSearchProxy {
+  -FlightGeneratorService generator
+  +searchFlights(params)
+}
+
+class FlightGeneratorService {
+  +generateMissingFlights(params)
+}
+
+class FlightRepository {
+  +getFlights(params)
+}
+
+FlightController --> FlightSearchProxy : Calls
+FlightSearchProxy --> FlightRepository : 1. Query DB
+FlightSearchProxy --> FlightGeneratorService : 2. Call if empty
+@enduml
+
+=== 2. TÍNH TOÁN GIÁ VÉ ĐỘNG (Strategy & Decorator Pattern) ===
+@startuml
+interface PricingStrategyInterface {
+  +calculatePrice(flight): float
+}
+
+class OneWayPricingStrategy {
+  +calculatePrice(flight): float
+}
+
+class RoundTripPricingStrategy {
+  +calculatePrice(flight): float
+}
+
+class VipPricingDecorator {
+  -PricingStrategyInterface baseStrategy
+  +calculatePrice(flight): float
+}
+
+PricingStrategyInterface <|.. OneWayPricingStrategy
+PricingStrategyInterface <|.. RoundTripPricingStrategy
+PricingStrategyInterface <|.. VipPricingDecorator
+VipPricingDecorator o--> PricingStrategyInterface : wraps
+@enduml
+
+=== 3. TÍCH HỢP THANH TOÁN (Adapter Pattern) ===
+@startuml
+class PaymentController {
+  +store()
+}
+
+interface PaymentGatewayInterface {
+  +processPayment(amount, orderId)
+}
+
+class MockMomoAdapter {
+  +processPayment(amount, orderId)
+}
+
+class MockVnPayAdapter {
+  +processPayment(amount, orderId)
+}
+
+PaymentController --> PaymentGatewayInterface : uses
+PaymentGatewayInterface <|.. MockMomoAdapter
+PaymentGatewayInterface <|.. MockVnPayAdapter
+@enduml
+
+=== 4. VÒNG ĐỜI CHUYẾN BAY (State Pattern) ===
+@startuml
+class Flight {
+  -FlightState state
+  +transitionTo(newState)
+}
+
+abstract class FlightState {
+  #Flight flight
+  +{abstract} transitionTo(newState)
+  +{abstract} validateCheckIn()
+}
+
+class ScheduledState {
+  +transitionTo(newState)
+  +validateCheckIn()
+}
+
+class CheckInState {
+  +transitionTo(newState)
+  +validateCheckIn()
+}
+
+Flight --> FlightState : Has state
+FlightState <|-- ScheduledState
+FlightState <|-- CheckInState
+@enduml
+  
+=== 5. QUAN LY KHOA GHE (Passive Cleanup & Optimistic Locking) ===  
+@startuml  
+actor "Khach hang 1" as User1  
+actor "Khach hang 2" as User2  
+participant "Controller" as Controller  
+database "Database" as DB  
+== 1. Don rac thu dong (Passive Cleanup) ==  
+User1 -> Controller: Lay danh sach ghe trong  
+Controller -> DB: Xoa cac ghe giu cho qua 15 phut  
+DB --> Controller: Giai phong ghe  
+Controller --> User1: Tra ve danh sach ghe cap nhat  
+== 2. Khoa chong trung (Database Locking) ==  
+User1 -> Controller: Bam thanh toan ghe A1  
+User2 -> Controller: Bam thanh toan ghe A1 (Cung luc)  
+Controller -> DB: DB::beginTransaction()  
+Controller -> DB: SELECT * FROM seats WHERE id=A1 FOR UPDATE  
+DB --> Controller: Khoa dong A1 cho User 1  
+Controller -> DB: Update status = 'Da ban'  
+Controller -> DB: DB::commit()  
+note right of User2: Request bi DB chan lai vi khoa FOR UPDATE  
+@enduml 
